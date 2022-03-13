@@ -1,11 +1,11 @@
 use std::str::Lines;
 
-mod full_matrix;
 mod euc2d;
+mod full_matrix;
 mod lower_diag_row;
 
-use full_matrix::FullMatrixTspParser;
 use euc2d::Euc2dTspParser;
+use full_matrix::FullMatrixTspParser;
 use lower_diag_row::LowerDiagRowTspParser;
 
 pub struct Tsp {
@@ -31,25 +31,31 @@ impl Tsp {
         }
     }
 
+    pub fn get_edges(self) -> Vec<Vec<u32>> {
+        self.edges
+    }
+
     fn check_file_type(file_lines: &mut Lines) -> Option<TspFileType> {
         let edge_weight_type = file_lines.nth(4)?;
-        let edge_weight_type = edge_weight_type.split_whitespace().nth(1)?;
 
-        match edge_weight_type {
-            "EUC_2D" => Some(TspFileType::Euc2d),
-            "EXPLICIT" => Tsp::check_explicit_file_type(file_lines),
-            _ => None,
+        if edge_weight_type.contains("EUC_2D") {
+            Some(TspFileType::Euc2d)
+        } else if edge_weight_type.contains("EXPLICIT") {
+            Tsp::check_explicit_file_type(file_lines)
+        } else {
+            None
         }
     }
 
     fn check_explicit_file_type(file_lines: &mut Lines) -> Option<TspFileType> {
         let edge_weight_format = file_lines.next()?;
-        let edge_weight_format = edge_weight_format.split_whitespace().nth(1)?;
 
-        match edge_weight_format {
-            "FULL_MATRIX" => Some(TspFileType::FullMatrix),
-            "LOWER_DIAG_ROW" => Some(TspFileType::LowerDiagRow),
-            _ => None,
+        if edge_weight_format.contains("FULL_MATRIX") {
+            Some(TspFileType::FullMatrix)
+        } else if edge_weight_format.contains("LOWER_DIAG_ROW") {
+            Some(TspFileType::LowerDiagRow)
+        } else {
+            None
         }
     }
 }
@@ -111,5 +117,16 @@ mod tests {
             vec![vec![0, 10, 7], vec![10, 0, 7], vec![7, 7, 0]],
             tsp.edges
         );
+    }
+
+    #[test]
+    fn read_coords() {
+        let filename = "brd14051.tsp";
+
+        let tsp = Tsp::from_file(filename).expect("Couldn't parse file");
+        let edges = tsp.get_edges();
+
+        assert_eq!(14051, edges.len());
+        assert_eq!(14051, edges[0].len());
     }
 }
