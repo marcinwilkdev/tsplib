@@ -1,3 +1,4 @@
+use std::num::ParseIntError;
 use std::str::Lines;
 
 struct Tsp {
@@ -14,17 +15,13 @@ enum TspFileType {
 impl Tsp {
     pub fn from_file(filename: &str) -> Option<Tsp> {
         // change this
-        let file_content = match std::fs::read_to_string(filename) {
-            Ok(file_content) => file_content,
-            Err(_) => return None,
-        };
-
+        let file_content = std::fs::read_to_string(filename).ok()?;
         let mut file_lines = file_content.lines();
 
         match Tsp::check_file_type(&mut file_lines)? {
             TspFileType::LowerDiagRow => Some(Tsp::from_lower_diag_row(&mut file_lines)),
-            TspFileType::FullMatrix => Some(Tsp::from_lower_diag_row(&mut file_lines)),
-            TspFileType::Euc2d => Some(Tsp::from_lower_diag_row(&mut file_lines)),
+            TspFileType::FullMatrix => Tsp::from_full_matrix(&mut file_lines),
+            TspFileType::Euc2d => Some(Tsp::from_euc_2d(&mut file_lines)),
         }
     }
 
@@ -58,11 +55,27 @@ impl Tsp {
         Tsp { edges: vec![] }
     }
 
-    fn from_full_matrix(data: &str) -> Tsp {
-        Tsp { edges: vec![] }
+    fn from_full_matrix(file_lines: &mut Lines) -> Option<Tsp> {
+        file_lines.next();
+
+        let edges: Result<Vec<Vec<u32>>, ParseIntError> = file_lines
+            .filter(|line| !(line == &"EOF"))
+            .map(|line| Tsp::parse_full_matrix_line(line))
+            .collect();
+
+        let edges = edges.ok()?;
+
+        Some(Tsp { edges })
     }
 
-    fn from_euc_2d(data: &str) -> Tsp {
+    fn parse_full_matrix_line(line: &str) -> Result<Vec<u32>, ParseIntError> {
+        line.split_whitespace()
+            .map(|weight| weight.parse())
+            .map(|weight| if let Ok(9999) = weight { Ok(0) } else { weight })
+            .collect()
+    }
+
+    fn from_euc_2d(file_lines: &mut Lines) -> Tsp {
         Tsp { edges: vec![] }
     }
 }
