@@ -1,7 +1,14 @@
-use std::num::ParseIntError;
 use std::str::Lines;
 
-struct Tsp {
+mod full_matrix;
+mod euc2d;
+mod lower_diag_row;
+
+use full_matrix::FullMatrixTspParser;
+use euc2d::Euc2dTspParser;
+use lower_diag_row::LowerDiagRowTspParser;
+
+pub struct Tsp {
     edges: Vec<Vec<u32>>,
 }
 
@@ -14,14 +21,13 @@ enum TspFileType {
 
 impl Tsp {
     pub fn from_file(filename: &str) -> Option<Tsp> {
-        // change this
         let file_content = std::fs::read_to_string(filename).ok()?;
         let mut file_lines = file_content.lines();
 
         match Tsp::check_file_type(&mut file_lines)? {
-            TspFileType::LowerDiagRow => Tsp::from_lower_diag_row(&mut file_lines),
-            TspFileType::FullMatrix => Tsp::from_full_matrix(&mut file_lines),
-            TspFileType::Euc2d => Tsp::from_euc_2d(&mut file_lines),
+            TspFileType::LowerDiagRow => LowerDiagRowTspParser::parse(&mut file_lines),
+            TspFileType::FullMatrix => FullMatrixTspParser::parse(&mut file_lines),
+            TspFileType::Euc2d => Euc2dTspParser::parse(&mut file_lines),
         }
     }
 
@@ -45,101 +51,6 @@ impl Tsp {
             "LOWER_DIAG_ROW" => Some(TspFileType::LowerDiagRow),
             _ => None,
         }
-    }
-
-    fn from_lower_diag_row(file_lines: &mut Lines) -> Option<Tsp> {
-        file_lines.next();
-
-        let mut edges: Vec<Vec<u32>> = Vec::new(); // TODO: change to with capacity
-        let mut curr_edge = Vec::new(); // TODO: change to with capacity
-
-        let data_lines = file_lines.filter(|line| !(line == &"EOF"));
-        let mut edge_index = 0;
-
-        for line in data_lines {
-            let line_edges = line.split_whitespace();
-
-            for line_edge in line_edges {
-                let line_edge = line_edge.parse().ok()?;
-
-                curr_edge.push(line_edge);
-
-                if line_edge != 0 {
-                    edges[edge_index].push(line_edge);
-                    edge_index += 1;
-                } else {
-                    edges.push(curr_edge);
-                    curr_edge = Vec::new();
-                    edge_index = 0;
-                }
-            }
-        }
-
-        Some(Tsp { edges })
-    }
-
-    fn from_full_matrix(file_lines: &mut Lines) -> Option<Tsp> {
-        file_lines.next();
-
-        let edges: Result<Vec<Vec<u32>>, ParseIntError> = file_lines
-            .filter(|line| !(line == &"EOF"))
-            .map(|line| Tsp::parse_full_matrix_line(line))
-            .collect();
-
-        let edges = edges.ok()?;
-
-        Some(Tsp { edges })
-    }
-
-    fn parse_full_matrix_line(line: &str) -> Result<Vec<u32>, ParseIntError> {
-        line.split_whitespace()
-            .map(|weight| weight.parse())
-            .map(|weight| if let Ok(9999) = weight { Ok(0) } else { weight })
-            .collect()
-    }
-
-    fn from_euc_2d(file_lines: &mut Lines) -> Option<Tsp> {
-        file_lines.next();
-
-        let coords: Option<Vec<(i32, i32)>> = file_lines
-            .filter(|line| !(line == &"EOF"))
-            .map(|line| Tsp::parse_line_into_coords(&line))
-            .collect();
-
-        let coords = coords?;
-
-        let edges = Tsp::parse_distances(&coords);
-
-        Some(Tsp { edges })
-    }
-
-    fn parse_line_into_coords(line: &str) -> Option<(i32, i32)> {
-        let mut line = dbg!(line.split_whitespace());
-
-        let (x, y) = (line.nth(1)?, line.next()?);
-        let (x, y): (f64, f64) = (x.parse().ok()?, y.parse().ok()?);
-
-        Some((x as i32, y as i32))
-    }
-
-    fn parse_distances(coords: &[(i32, i32)]) -> Vec<Vec<u32>> {
-        coords
-            .iter()
-            .map(|p1| Tsp::calculate_distances_to_other_points(*p1, coords))
-            .collect()
-    }
-
-    fn calculate_distances_to_other_points(p1: (i32, i32), coords: &[(i32, i32)]) -> Vec<u32> {
-        coords
-            .iter()
-            .map(|p2| Tsp::calculate_distance(p1, *p2))
-            .collect()
-    }
-
-    fn calculate_distance((x1, y1): (i32, i32), (x2, y2): (i32, i32)) -> u32 {
-        (((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)) as f64)
-            .sqrt()
-            .round() as u32
     }
 }
 
