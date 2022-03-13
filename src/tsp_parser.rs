@@ -19,18 +19,14 @@ impl Tsp {
         let mut file_lines = file_content.lines();
 
         match Tsp::check_file_type(&mut file_lines)? {
-            TspFileType::LowerDiagRow => Some(Tsp::from_lower_diag_row(&mut file_lines)),
+            TspFileType::LowerDiagRow => Tsp::from_lower_diag_row(&mut file_lines),
             TspFileType::FullMatrix => Tsp::from_full_matrix(&mut file_lines),
             TspFileType::Euc2d => Some(Tsp::from_euc_2d(&mut file_lines)),
         }
     }
 
     fn check_file_type(file_lines: &mut Lines) -> Option<TspFileType> {
-        for _ in 0..4 {
-            file_lines.next();
-        }
-
-        let edge_weight_type = file_lines.next()?;
+        let edge_weight_type = file_lines.nth(4)?;
         let edge_weight_type = edge_weight_type.split_whitespace().nth(1)?;
 
         match edge_weight_type {
@@ -51,8 +47,35 @@ impl Tsp {
         }
     }
 
-    fn from_lower_diag_row(file_lines: &mut Lines) -> Tsp {
-        Tsp { edges: vec![] }
+    fn from_lower_diag_row(file_lines: &mut Lines) -> Option<Tsp> {
+        file_lines.next();
+
+        let mut edges: Vec<Vec<u32>> = Vec::new(); // TODO: change to with capacity
+        let mut curr_edge = Vec::new(); // TODO: change to with capacity
+
+        let data_lines = file_lines.filter(|line| !(line == &"EOF"));
+        let mut edge_index = 0;
+
+        for line in data_lines {
+            let line_edges = line.split_whitespace();
+
+            for line_edge in line_edges {
+                let line_edge = line_edge.parse().ok()?;
+
+                curr_edge.push(line_edge);
+
+                if line_edge != 0 {
+                    edges[edge_index].push(line_edge);
+                    edge_index += 1;
+                } else {
+                    edges.push(curr_edge);
+                    curr_edge = Vec::new();
+                    edge_index = 0;
+                }
+            }
+        }
+
+        Some(Tsp { edges })
     }
 
     fn from_full_matrix(file_lines: &mut Lines) -> Option<Tsp> {
