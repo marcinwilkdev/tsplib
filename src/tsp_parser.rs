@@ -21,7 +21,7 @@ impl Tsp {
         match Tsp::check_file_type(&mut file_lines)? {
             TspFileType::LowerDiagRow => Tsp::from_lower_diag_row(&mut file_lines),
             TspFileType::FullMatrix => Tsp::from_full_matrix(&mut file_lines),
-            TspFileType::Euc2d => Some(Tsp::from_euc_2d(&mut file_lines)),
+            TspFileType::Euc2d => Tsp::from_euc_2d(&mut file_lines),
         }
     }
 
@@ -98,8 +98,48 @@ impl Tsp {
             .collect()
     }
 
-    fn from_euc_2d(file_lines: &mut Lines) -> Tsp {
-        Tsp { edges: vec![] }
+    fn from_euc_2d(file_lines: &mut Lines) -> Option<Tsp> {
+        file_lines.next();
+
+        let coords: Option<Vec<(i32, i32)>> = file_lines
+            .filter(|line| !(line == &"EOF"))
+            .map(|line| Tsp::parse_line_into_coords(&line))
+            .collect();
+
+        let coords = coords?;
+
+        let edges = Tsp::parse_distances(&coords);
+
+        Some(Tsp { edges })
+    }
+
+    fn parse_line_into_coords(line: &str) -> Option<(i32, i32)> {
+        let mut line = dbg!(line.split_whitespace());
+
+        let (x, y) = (line.nth(1)?, line.next()?);
+        let (x, y): (f64, f64) = (x.parse().ok()?, y.parse().ok()?);
+
+        Some((x as i32, y as i32))
+    }
+
+    fn parse_distances(coords: &[(i32, i32)]) -> Vec<Vec<u32>> {
+        coords
+            .iter()
+            .map(|p1| Tsp::calculate_distances_to_other_points(*p1, coords))
+            .collect()
+    }
+
+    fn calculate_distances_to_other_points(p1: (i32, i32), coords: &[(i32, i32)]) -> Vec<u32> {
+        coords
+            .iter()
+            .map(|p2| Tsp::calculate_distance(p1, *p2))
+            .collect()
+    }
+
+    fn calculate_distance((x1, y1): (i32, i32), (x2, y2): (i32, i32)) -> u32 {
+        (((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)) as f64)
+            .sqrt()
+            .round() as u32
     }
 }
 
