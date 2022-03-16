@@ -1,10 +1,8 @@
 import tsplib
+import os
 
-edges = tsplib.parse_file("lower_diag_row")
-print(edges)
+test_files = os.listdir("test_files")
 
-edges = tsplib.parse_file("full_matrix")
-print(edges)
-
-edges = tsplib.parse_file("euc_2d")
-print(edges)
+for file in test_files:
+    edges = tsplib.parse_file(f"test_files/{file}")
+    print(f"File {file} done.")
