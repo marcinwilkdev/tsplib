@@ -8,6 +8,7 @@ use euc2d::Euc2dTspParser;
 use full_matrix::FullMatrixTspParser;
 use lower_diag_row::LowerDiagRowTspParser;
 
+#[derive(Debug)]
 pub struct Tsp {
     edges: Vec<Vec<u32>>,
 }
@@ -25,8 +26,17 @@ impl Tsp {
         let mut file_lines = file_content.lines();
 
         let dimension = Tsp::check_dimension(&mut file_lines)?;
+        let file_type = Tsp::check_file_type(&mut file_lines)?;
 
-        match Tsp::check_file_type_and_dimension(&mut file_lines)? {
+        loop {
+            let line = file_lines.next()?;
+
+            if line.contains("EDGE_WEIGHT_SECTION") || line.contains("NODE_COORD_SECTION") {
+                break;
+            }
+        };
+
+        match file_type {
             TspFileType::LowerDiagRow => LowerDiagRowTspParser::parse(&mut file_lines, dimension),
             TspFileType::FullMatrix => FullMatrixTspParser::parse(&mut file_lines, dimension),
             TspFileType::Euc2d => Euc2dTspParser::parse(&mut file_lines, dimension),
@@ -37,14 +47,30 @@ impl Tsp {
         self.edges
     }
 
-    fn check_dimension(file_lines: &mut Lines) -> Option<u32> {
-        let dimension = file_lines.nth(3)?;
+    fn check_dimension(file_lines: &mut Lines) -> Option<usize> {
+        let dimension = loop {
+            let line = file_lines.next()?;
 
-        dimension.split_whitespace().nth(1)?.parse::<u32>().ok()
+            if line.contains("DIMENSION") {
+                break line;
+            }
+        };
+
+        dimension
+            .split_whitespace()
+            .last()?
+            .parse::<usize>()
+            .ok()
     }
 
-    fn check_file_type_and_dimension(file_lines: &mut Lines) -> Option<TspFileType> {
-        let edge_weight_type = file_lines.next()?;
+    fn check_file_type(file_lines: &mut Lines) -> Option<TspFileType> {
+        let edge_weight_type = loop {
+            let line = file_lines.next()?;
+
+            if line.contains("EDGE_WEIGHT_TYPE") {
+                break line;
+            }
+        };
 
         if edge_weight_type.contains("EUC_2D") {
             Some(TspFileType::Euc2d)
@@ -90,7 +116,7 @@ mod tests {
         lines.nth(3);
 
         let tsp_type =
-            Tsp::check_file_type_and_dimension(&mut lines).expect("file couldn't be parsed");
+            Tsp::check_file_type(&mut lines).expect("file couldn't be parsed");
         assert_eq!(file_type, tsp_type);
     }
 
@@ -109,12 +135,11 @@ mod tests {
         check_file_type_works("lower_diag_row", TspFileType::LowerDiagRow);
     }
 
-    fn check_dimension_works(filename: &str, expected_dimension: u32) {
+    fn check_dimension_works(filename: &str, expected_dimension: usize) {
         let file_content = std::fs::read_to_string(filename).expect("file doesn't exist");
         let mut lines = file_content.lines();
 
-        let dimension =
-            Tsp::check_dimension(&mut lines).expect("file couldn't be parsed");
+        let dimension = Tsp::check_dimension(&mut lines).expect("file couldn't be parsed");
         assert_eq!(expected_dimension, dimension);
     }
 
@@ -142,7 +167,7 @@ mod tests {
     #[test]
     fn full_matrix_works() {
         let tsp = Tsp::from_file("full_matrix").expect("Couldn't parse file");
-        assert_eq!(vec![vec![0, 2, 3], vec![2, 0, 3], vec![3, 3, 0]], tsp.edges);
+        assert_eq!(vec![vec![9999, 2, 3], vec![2, 9999, 3], vec![3, 3, 9999]], tsp.edges);
     }
 
     #[test]
