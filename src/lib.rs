@@ -1,4 +1,5 @@
 mod tsp_parser;
+mod tsp_tests;
 
 use tsp_parser::Tsp;
 
