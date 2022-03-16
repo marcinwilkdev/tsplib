@@ -5,12 +5,10 @@ use super::Tsp;
 pub struct LowerDiagRowTspParser;
 
 impl LowerDiagRowTspParser {
-    pub fn parse(file_lines: &mut Lines, dimension: u32) -> Option<Tsp> {
-        file_lines.next();
-
+    pub fn parse(file_lines: &mut Lines, dimension: usize) -> Option<Tsp> {
         let data_lines = file_lines.filter(|line| !(line == &"EOF"));
 
-        let edges_collector = EdgesCollector::new();
+        let edges_collector = EdgesCollector::new(dimension);
 
         let edges = edges_collector.collect_edges(data_lines)?;
 
@@ -22,14 +20,16 @@ struct EdgesCollector {
     edges: Vec<Vec<u32>>,
     curr_edge: Vec<u32>,
     edge_index: usize,
+    dimension: usize,
 }
 
 impl EdgesCollector {
-    fn new() -> Self {
+    fn new(dimension: usize) -> Self {
         EdgesCollector {
             edges: Vec::new(),
             curr_edge: Vec::new(),
             edge_index: 0,
+            dimension,
         }
     }
 
@@ -38,21 +38,29 @@ impl EdgesCollector {
     where
         I: Iterator<Item = &'a str>,
     {
+        let mut line_weight_index = 0;
+
         for line in data_lines {
-            let line_edges = line.split_whitespace();
+            let line_weights = line.split_whitespace();
 
-            for line_edge in line_edges {
-                let line_edge = line_edge.parse().ok()?;
+            for weight in line_weights {
+                let weight = weight.parse().ok()?;
 
-                self.curr_edge.push(line_edge);
+                self.curr_edge.push(weight);
 
-                if line_edge != 0 {
-                    self.edges[self.edge_index].push(line_edge);
+                if weight != 0 {
+                    self.edges[self.edge_index].push(weight);
                     self.edge_index += 1;
                 } else {
                     self.edges.push(self.curr_edge);
                     self.curr_edge = Vec::new();
                     self.edge_index = 0;
+
+                    line_weight_index += 1;
+
+                    if line_weight_index == self.dimension {
+                        return Some(self.edges);
+                    }
                 }
             }
         }
@@ -65,11 +73,9 @@ impl EdgesCollector {
 mod tests {
     use super::*;
 
-    // TODO: change test to take string instead of open file.
     #[test]
     fn lower_diag_row_parser_works() {
-        let data = "EDGE_WEIGHT_SECTION
- 0 2 0 3
+        let data = "0 2 0 3
  3 0
 EOF";
 
