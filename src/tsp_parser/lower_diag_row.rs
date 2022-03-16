@@ -5,7 +5,7 @@ use super::Tsp;
 pub struct LowerDiagRowTspParser;
 
 impl LowerDiagRowTspParser {
-    pub fn parse(file_lines: &mut Lines) -> Option<Tsp> {
+    pub fn parse(file_lines: &mut Lines, dimension: u32) -> Option<Tsp> {
         file_lines.next();
 
         let data_lines = file_lines.filter(|line| !(line == &"EOF"));
@@ -75,7 +75,7 @@ EOF";
 
         let mut data_lines = data.lines();
 
-        let tsp = LowerDiagRowTspParser::parse(&mut data_lines).expect("error while parsing data");
+        let tsp = LowerDiagRowTspParser::parse(&mut data_lines, 3).expect("error while parsing data");
         assert_eq!(vec![vec![0, 2, 3], vec![2, 0, 3], vec![3, 3, 0]], tsp.edges);
     }
 }

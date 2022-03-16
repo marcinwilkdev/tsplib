@@ -24,10 +24,12 @@ impl Tsp {
         let file_content = std::fs::read_to_string(filename).ok()?;
         let mut file_lines = file_content.lines();
 
-        match Tsp::check_file_type(&mut file_lines)? {
-            TspFileType::LowerDiagRow => LowerDiagRowTspParser::parse(&mut file_lines),
-            TspFileType::FullMatrix => FullMatrixTspParser::parse(&mut file_lines),
-            TspFileType::Euc2d => Euc2dTspParser::parse(&mut file_lines),
+        let dimension = Tsp::check_dimension(&mut file_lines)?;
+
+        match Tsp::check_file_type_and_dimension(&mut file_lines)? {
+            TspFileType::LowerDiagRow => LowerDiagRowTspParser::parse(&mut file_lines, dimension),
+            TspFileType::FullMatrix => FullMatrixTspParser::parse(&mut file_lines, dimension),
+            TspFileType::Euc2d => Euc2dTspParser::parse(&mut file_lines, dimension),
         }
     }
 
@@ -35,8 +37,14 @@ impl Tsp {
         self.edges
     }
 
-    fn check_file_type(file_lines: &mut Lines) -> Option<TspFileType> {
-        let edge_weight_type = file_lines.nth(4)?;
+    fn check_dimension(file_lines: &mut Lines) -> Option<u32> {
+        let dimension = file_lines.nth(3)?;
+
+        dimension.split_whitespace().nth(1)?.parse::<u32>().ok()
+    }
+
+    fn check_file_type_and_dimension(file_lines: &mut Lines) -> Option<TspFileType> {
+        let edge_weight_type = file_lines.next()?;
 
         if edge_weight_type.contains("EUC_2D") {
             Some(TspFileType::Euc2d)
@@ -79,7 +87,10 @@ mod tests {
         let file_content = std::fs::read_to_string(filename).expect("file doesn't exist");
         let mut lines = file_content.lines();
 
-        let tsp_type = Tsp::check_file_type(&mut lines).expect("file couldn't be parsed");
+        lines.nth(3);
+
+        let tsp_type =
+            Tsp::check_file_type_and_dimension(&mut lines).expect("file couldn't be parsed");
         assert_eq!(file_type, tsp_type);
     }
 
@@ -96,6 +107,30 @@ mod tests {
     #[test]
     fn check_lower_diag_row_file_type_works() {
         check_file_type_works("lower_diag_row", TspFileType::LowerDiagRow);
+    }
+
+    fn check_dimension_works(filename: &str, expected_dimension: u32) {
+        let file_content = std::fs::read_to_string(filename).expect("file doesn't exist");
+        let mut lines = file_content.lines();
+
+        let dimension =
+            Tsp::check_dimension(&mut lines).expect("file couldn't be parsed");
+        assert_eq!(expected_dimension, dimension);
+    }
+
+    #[test]
+    fn check_euc_2d_dimension_works() {
+        check_dimension_works("euc_2d", 3);
+    }
+
+    #[test]
+    fn check_full_matrix_dimension_works() {
+        check_dimension_works("full_matrix", 3);
+    }
+
+    #[test]
+    fn check_lower_diag_row_dimension_works() {
+        check_dimension_works("lower_diag_row", 3);
     }
 
     #[test]
@@ -117,16 +152,5 @@ mod tests {
             vec![vec![0, 10, 7], vec![10, 0, 7], vec![7, 7, 0]],
             tsp.edges
         );
-    }
-
-    #[test]
-    fn read_coords() {
-        let filename = "brd14051.tsp";
-
-        let tsp = Tsp::from_file(filename).expect("Couldn't parse file");
-        let edges = tsp.get_edges();
-
-        assert_eq!(14051, edges.len());
-        assert_eq!(14051, edges[0].len());
     }
 }

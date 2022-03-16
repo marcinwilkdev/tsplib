@@ -5,15 +5,12 @@ use super::Tsp;
 pub struct Euc2dTspParser;
 
 impl Euc2dTspParser {
-    pub fn parse(file_lines: &mut Lines) -> Option<Tsp> {
+    pub fn parse(file_lines: &mut Lines, dimension: u32) -> Option<Tsp> {
         file_lines.next();
 
-        let coords: Option<Vec<(i32, i32)>> = file_lines
-            .filter(|line| !(line == &"EOF"))
-            .map(|line| Euc2dTspParser::parse_line_into_coords(&line))
+        let coords: Vec<(i32, i32)> = file_lines
+            .filter_map(|line| Euc2dTspParser::parse_line_into_coords(&line))
             .collect();
-
-        let coords = coords?;
 
         let edges = Euc2dTspParser::parse_distances(&coords);
 
@@ -54,7 +51,6 @@ impl Euc2dTspParser {
 mod tests {
     use super::*;
 
-    // TODO: change test to take string instead of open file.
     #[test]
     fn euc2d_parser_working() {
         let data = "NODE_COORD_SECTION
@@ -65,7 +61,27 @@ EOF";
 
         let mut data_lines = data.lines();
 
-        let tsp = Euc2dTspParser::parse(&mut data_lines).expect("error while parsing data");
+        let tsp = Euc2dTspParser::parse(&mut data_lines, 3).expect("error while parsing data");
+
+        assert_eq!(
+            vec![vec![0, 10, 7], vec![10, 0, 7], vec![7, 7, 0]],
+            tsp.edges
+        );
+    }
+
+    #[test]
+    fn euc2d_parser_working_new_line() {
+        let data = r"NODE_COORD_SECTION
+1 0.0 10.0
+2 0.0 0.0
+3 5.0 5.0
+EOF
+
+";
+
+        let mut data_lines = data.lines();
+
+        let tsp = Euc2dTspParser::parse(&mut data_lines, 3).expect("error while parsing data");
 
         assert_eq!(
             vec![vec![0, 10, 7], vec![10, 0, 7], vec![7, 7, 0]],
