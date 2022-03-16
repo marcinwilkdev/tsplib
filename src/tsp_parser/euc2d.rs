@@ -5,14 +5,15 @@ use super::Tsp;
 pub struct Euc2dTspParser;
 
 impl Euc2dTspParser {
-    pub fn parse(file_lines: &mut Lines, dimension: u32) -> Option<Tsp> {
+    pub fn parse(file_lines: &mut Lines, dimension: usize) -> Option<Tsp> {
         file_lines.next();
 
-        let coords: Vec<(i32, i32)> = file_lines
-            .filter_map(|line| Euc2dTspParser::parse_line_into_coords(&line))
+        let coords: Option<Vec<(i32, i32)>> = file_lines
+            .take(dimension)
+            .map(|line| Euc2dTspParser::parse_line_into_coords(&line))
             .collect();
 
-        let edges = Euc2dTspParser::parse_distances(&coords);
+        let edges = Euc2dTspParser::parse_distances(&coords?);
 
         Some(Tsp { edges })
     }
