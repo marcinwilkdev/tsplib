@@ -6,8 +6,6 @@ pub struct Euc2dTspParser;
 
 impl Euc2dTspParser {
     pub fn parse(file_lines: &mut Lines, dimension: usize) -> Option<Tsp> {
-        file_lines.next();
-
         let coords: Option<Vec<(i32, i32)>> = file_lines
             .take(dimension)
             .map(|line| Euc2dTspParser::parse_line_into_coords(&line))
@@ -54,31 +52,9 @@ mod tests {
 
     #[test]
     fn euc2d_parser_working() {
-        let data = "NODE_COORD_SECTION
-1 0.0 10.0
+        let data = "1 0.0 10.0
 2 0.0 0.0
-3 5.0 5.0
-EOF";
-
-        let mut data_lines = data.lines();
-
-        let tsp = Euc2dTspParser::parse(&mut data_lines, 3).expect("error while parsing data");
-
-        assert_eq!(
-            vec![vec![0, 10, 7], vec![10, 0, 7], vec![7, 7, 0]],
-            tsp.edges
-        );
-    }
-
-    #[test]
-    fn euc2d_parser_working_new_line() {
-        let data = r"NODE_COORD_SECTION
-1 0.0 10.0
-2 0.0 0.0
-3 5.0 5.0
-EOF
-
-";
+3 5.0 5.0";
 
         let mut data_lines = data.lines();
 
