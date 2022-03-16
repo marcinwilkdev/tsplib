@@ -5,23 +5,49 @@ use super::Tsp;
 pub struct FullMatrixTspParser;
 
 impl FullMatrixTspParser {
-    pub fn parse(file_lines: &mut Lines, dimension: u32) -> Option<Tsp> {
+    pub fn parse(file_lines: &mut Lines, dimension: usize) -> Option<Tsp> {
         file_lines.next();
 
-        let edges: Vec<Vec<u32>> = file_lines
-            .filter(|line| line.trim() != "")
-            .filter_map(|line| FullMatrixTspParser::parse_full_matrix_line(line))
-            .collect();
+        let edges = FullMatrixTspParser::parse_lines_into_edges(file_lines, dimension)?;
 
         Some(Tsp { edges })
     }
 
-    fn parse_full_matrix_line(line: &str) -> Option<Vec<u32>> {
-        line.split_whitespace()
-            .map(|weight| weight.parse())
-            .map(|weight| if let Ok(9999) = weight { Ok(0) } else { weight })
-            .collect::<Result<Vec<u32>, _>>()
-            .ok()
+    fn parse_lines_into_edges(file_lines: &mut Lines, dimension: usize) -> Option<Vec<Vec<u32>>> {
+        let mut edges = Vec::new();
+
+        for _ in 0..dimension {
+            let mut curr_edges = Vec::new();
+
+            let mut edge_counter = 0;
+
+            let mut line = file_lines.next()?;
+
+            let mut split_line = line.split_whitespace();
+
+            while edge_counter < dimension {
+                match split_line.next() {
+                    Some(edge) => {
+                        let mut edge = edge.parse().ok()?;
+
+                        if edge == 9999 {
+                            edge = 0;
+                        }
+
+                        curr_edges.push(edge);
+                        edge_counter += 1;
+                    }
+                    None => {
+                        line = file_lines.next()?;
+                        split_line = line.split_whitespace();
+                    }
+                }
+            }
+
+            edges.push(curr_edges);
+        }
+
+        Some(edges)
     }
 }
 
